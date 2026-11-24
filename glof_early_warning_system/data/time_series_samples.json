@@ -1,0 +1,34 @@
+{
+  "GL-IND-SKM-001": {
+    "name": "South Lhonak Lake",
+    "years": [2000, 2005, 2010, 2015, 2018, 2020, 2022, 2023],
+    "lake_area_km2": [0.42, 0.65, 0.98, 1.26, 1.45, 1.58, 1.68, 0.58],
+    "satellite_ndwi_mean": [0.52, 0.55, 0.58, 0.61, 0.64, 0.66, 0.68, 0.38],
+    "mean_summer_temp_c": [1.2, 1.5, 2.1, 2.8, 3.2, 3.6, 4.1, 4.3],
+    "event_note": "Significant drainage observed post-October 2023 outburst"
+  },
+  "GL-NPL-EVE-003": {
+    "name": "Imja Tsho",
+    "years": [2000, 2004, 2008, 2012, 2016, 2019, 2021, 2024],
+    "lake_area_km2": [0.82, 0.94, 1.05, 1.18, 1.28, 1.31, 1.33, 1.35],
+    "satellite_ndwi_mean": [0.48, 0.51, 0.54, 0.57, 0.59, 0.60, 0.61, 0.62],
+    "mean_summer_temp_c": [2.0, 2.3, 2.6, 3.0, 3.1, 3.5, 3.8, 4.0],
+    "event_note": "Artificial canal excavated in 2016 slowed surface area growth rate"
+  },
+  "GL-NPL-DOL-004": {
+    "name": "Tsho Rolpa",
+    "years": [2000, 2004, 2008, 2012, 2016, 2020, 2022, 2024],
+    "lake_area_km2": [1.15, 1.22, 1.30, 1.38, 1.44, 1.49, 1.52, 1.54],
+    "satellite_ndwi_mean": [0.55, 0.57, 0.59, 0.61, 0.62, 0.64, 0.65, 0.66],
+    "mean_summer_temp_c": [3.1, 3.4, 3.6, 4.0, 4.2, 4.6, 4.8, 5.1],
+    "event_note": "Steadily encroaching on terminal moraine; monitored via automatic weather station"
+  },
+  "GL-BTN-LUN-006": {
+    "name": "Thorthormi Tsho",
+    "years": [2002, 2006, 2010, 2014, 2018, 2021, 2023, 2024],
+    "lake_area_km2": [1.20, 1.65, 2.10, 2.55, 2.95, 3.20, 3.35, 3.42],
+    "satellite_ndwi_mean": [0.44, 0.49, 0.53, 0.58, 0.62, 0.65, 0.67, 0.69],
+    "mean_summer_temp_c": [1.8, 2.2, 2.7, 3.2, 3.7, 4.0, 4.3, 4.6],
+    "event_note": "Merging supraglacial ponds; highest aggregate volume growth rate in Bhutan"
+  }
+}

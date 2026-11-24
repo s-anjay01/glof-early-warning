@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himalayan GLOF Early Warning & Risk Intelligence System</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="logo-group">
+            <div class="logo-icon">🏔️</div>
+            <div>
+                <div class="logo-title">GLOF-WATCH &bull; Himalayan Sentinel</div>
+                <div class="logo-subtitle">Glacial Lake Outburst Flood Early Warning & Risk System</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="pulse-badge">
+                <span class="pulse-dot"></span>
+                LIVE SENTINEL TELEMETRY
+            </div>
+            <button class="btn-primary" onclick="window.print()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                📄 Export Briefing
+            </button>
+        </div>
+    </header>
+
+    <!-- Top KPI Bar -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">🛰️</div>
+            <div>
+                <div class="kpi-val" id="kpi-monitored">10</div>
+                <div class="kpi-label">Monitored Sentinel Lakes</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
+            <div>
+                <div class="kpi-val" id="kpi-critical" style="color: #ef4444;">--</div>
+                <div class="kpi-label">Critical Hazard Tier</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💧</div>
+            <div>
+                <div class="kpi-val" id="kpi-volume">--</div>
+                <div class="kpi-label">Aggregate Stored Water</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">👥</div>
+            <div>
+                <div class="kpi-val" id="kpi-exposed">--</div>
+                <div class="kpi-label">Downstream Population at Risk</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-layout">
+        
+        <!-- Left / Center Section: Map & Simulation Studio -->
+        <div class="main-column">
+            
+            <!-- Map Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🗺️</span> Himalayan Glacial Basins & Sentinel Lake Map
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                        Leaflet GIS &bull; High-Altitude Satellite & Elevation Layers
+                    </div>
+                </div>
+                <div id="map"></div>
+                <div style="display:flex; gap:1.5rem; margin-top:0.75rem; font-size:0.75rem; color:var(--text-muted); align-items:center;">
+                    <span><strong>Legend:</strong></span>
+                    <span><span style="color:#ef4444; font-size:1rem;">●</span> Critical Hazard</span>
+                    <span><span style="color:#f97316; font-size:1rem;">●</span> High Hazard</span>
+                    <span><span style="color:#eab308; font-size:1rem;">●</span> Moderate</span>
+                    <span><span style="color:#38bdf8; font-weight:bold;">- - -</span> Downstream Flood Vector</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Hydrodynamic Simulator -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>⚡</span> Dynamic Outburst Flood Simulation Studio
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--accent-cyan);">
+                        Physics-Based Breach & Wave Modeling
+                    </div>
+                </div>
+
+                <div class="sim-grid">
+                    <div class="form-group">
+                        <label for="lake-selector">Active Glacial Lake Target</label>
+                        <select id="lake-selector"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trigger-type">Triggering Mechanism</label>
+                        <select id="trigger-type">
+                            <option value="avalanche">Ice / Hanging Rock Avalanche (Impulse Tsunami Wave)</option>
+                            <option value="breach">Moraine Dam Piping / Crest Collapse</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Avalanche Controls -->
+                <div id="avalanche-controls" class="sim-grid">
+                    <div class="form-group">
+                        <label>Avalanche Detachment Volume</label>
+                        <div class="range-wrap">
+                            <input type="range" id="avalanche-vol-slider" min="500000" max="4000000" step="100000" value="2000000">
+                            <span class="range-val" id="aval-vol-val">2.00 MCM</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <button class="btn-primary" id="run-simulation-btn" style="width: 100%;">
+                            <span>▶ Run Hydrodynamic Simulation</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Moraine Breach Controls -->
+                <div id="breach-controls" class="sim-grid" style="display: none;">
+                    <div class="form-group">
+                        <label>Moraine Breach Depth (% of Dam Height)</label>
+                        <div class="range-wrap">
+                            <input type="range" id="breach-depth-slider" min="20" max="90" step="5" value="60">
+                            <span class="range-val" id="breach-depth-val">60%</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <button class="btn-primary" onclick="executeSimulation()" style="width: 100%;">
+                            <span>▶ Run Breach Simulation</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Simulation Output KPI Cards -->
+                <div class="sim-metrics-row">
+                    <div class="sim-metric-box">
+                        <div class="sim-metric-num" id="res-wave">--</div>
+                        <div class="sim-metric-title">Impulse Wave Height</div>
+                    </div>
+                    <div class="sim-metric-box">
+                        <div class="sim-metric-num" id="res-overtop">--</div>
+                        <div class="sim-metric-title">Crest Overtopping</div>
+                    </div>
+                    <div class="sim-metric-box">
+                        <div class="sim-metric-num" id="res-vol">--</div>
+                        <div class="sim-metric-title">Outburst Volume Drained</div>
+                    </div>
+                    <div class="sim-metric-box">
+                        <div class="sim-metric-num" id="res-peak" style="color: #ef4444;">--</div>
+                        <div class="sim-metric-title">Peak Breach Discharge (Qmax)</div>
+                    </div>
+                </div>
+
+                <!-- Hydrograph Plot -->
+                <div style="height: 250px; margin-top: 1rem;">
+                    <canvas id="hydrographChart"></canvas>
+                </div>
+
+                <!-- Downstream Lead Time Table -->
+                <div class="table-responsive">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:0.4rem; display:flex; justify-content:space-between;">
+                        <span>Downstream Impact, Velocity & Evacuation Lead-Times</span>
+                        <span style="font-size:0.75rem; color:var(--text-muted);">Manning Canyon Routing Model</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Downstream Settlement / Asset</th>
+                                <th>Distance</th>
+                                <th>Wave Arrival</th>
+                                <th>Attenuated Q</th>
+                                <th>Flow Depth</th>
+                                <th>Warning Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="downstream-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Lower Section: Tabs for Historical Disasters and Scientific Framework -->
+            <div class="card">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="tab-historical">📜 Historical GLOF Disasters Registry</button>
+                    <button class="tab-btn" data-tab="tab-equations">📐 Scientific Equations & Physics</button>
+                    <button class="tab-btn" data-tab="tab-about">ℹ️ About the Project</button>
+                </div>
+
+                <!-- Historical Disasters Tab -->
+                <div id="tab-historical" class="tab-content active">
+                    <div id="historical-events-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Scientific Equations Tab -->
+                <div id="tab-equations" class="tab-content">
+                    <div style="font-size: 0.85rem; color: #d1d5db; display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-cyan);">1. Costa (1985) Empirical Peak Discharge:</strong><br>
+                            <code>Q_max = 0.013 &times; (V_w)^0.598 &times; (H_d)^0.548</code><br>
+                            <small style="color: var(--text-muted);">Where V_w is total impounded water volume (m³) and H_d is dam crest height (m).</small>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-cyan);">2. Froehlich (1995) Breach Peak Discharge:</strong><br>
+                            <code>Q_max = 0.607 &times; (V_w)^0.295 &times; (H_w)^1.24</code><br>
+                            <small style="color: var(--text-muted);">H_w is the depth of water above breach invert.</small>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-cyan);">3. Subaerial Impulse Wave (Heller & Hager, 2010):</strong><br>
+                            <code>H_0 = 0.35 &times; h &times; (V_ice / h³)^0.32 &times; sin(&alpha;)</code><br>
+                            <small style="color: var(--text-muted);">Models tsunami displacement wave triggered by hanging ice/rock slope collapse into lake.</small>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-cyan);">4. Mountain Canyon Flood Wave Attenuation & Velocity:</strong><br>
+                            <code>Q(x) = Q_peak / [1 + 0.025 &times; (x)^0.72]</code> &bull; <code>v = (1/n) &times; R^(2/3) &times; S^(1/2)</code><br>
+                            <small style="color: var(--text-muted);">Accounts for canyon bed friction (Manning n ~ 0.055) and high Himalayan channel gradients (S ~ 0.04).</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About Tab -->
+                <div id="tab-about" class="tab-content">
+                    <div style="font-size: 0.85rem; color: #d1d5db; line-height: 1.6;">
+                        <p><strong>GLOF Early Warning & Hazard Assessment System</strong> is an end-to-end Python & Geospatial platform designed to monitor expanding glacial lakes across the Hindu Kush-Himalayas (Sikkim, Uttarakhand, Nepal, Himachal Pradesh, Bhutan, and Ladakh).</p>
+                        <p style="margin-top: 0.5rem;">By integrating multi-temporal satellite observations (NDWI / MNDWI), Analytic Hierarchy Process (AHP) multi-criteria risk scoring, and hydrodynamic dam-break physics, the system provides decision-makers with early warning lead times and quantifiable downstream risk profiles.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Right Side: Selected Lake Intelligence Deep-Dive -->
+        <div class="sidebar-column">
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🎯</span> Hazard Intelligence
+                    </div>
+                    <span id="deepdive-level" class="badge badge-red">CRITICAL</span>
+                </div>
+
+                <div class="gauge-container">
+                    <div class="gauge-score" id="deepdive-score">--</div>
+                    <div class="gauge-sub">Composite GLOF Vulnerability (0 - 100)</div>
+                </div>
+
+                <!-- Key Lake Parameters -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0; font-size: 0.75rem;">
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Elevation:</span> <strong id="dd-elevation">--</strong>
+                    </div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Area:</span> <strong id="dd-area">--</strong>
+                    </div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Volume:</span> <strong id="dd-volume">--</strong>
+                    </div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Freeboard:</span> <strong id="dd-freeboard">--</strong>
+                    </div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Slope:</span> <strong id="dd-slope">--</strong>
+                    </div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;">
+                        <span style="color:var(--text-muted);">Dam Type:</span> <strong id="dd-dam">--</strong>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div style="height: 240px; margin: 1rem 0;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+
+                <!-- Multi-Year Satellite Expansion Curve -->
+                <div style="margin-top: 1.25rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:0.25rem;">
+                        Satellite Lake Growth Time-Series
+                    </div>
+                    <div style="height: 180px;">
+                        <canvas id="timeSeriesChart"></canvas>
+                    </div>
+                    <div id="timeseries-note" style="font-size: 0.7rem; color: var(--accent-cyan); margin-top: 0.25rem;"></div>
+                </div>
+
+                <!-- Mitigation & Recommendations -->
+                <div style="margin-top: 1.25rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff;">
+                        Early Warning & Engineering Directives
+                    </div>
+                    <ul class="recs-list" id="deepdive-recommendations">
+                        <!-- Populated dynamically -->
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- App JS -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

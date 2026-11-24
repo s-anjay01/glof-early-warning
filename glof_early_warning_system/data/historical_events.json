@@ -1,0 +1,57 @@
+[
+  {
+    "year": 2023,
+    "event_name": "South Lhonak Glacial Lake Outburst",
+    "location": "North Sikkim, India",
+    "basin": "Teesta River Basin",
+    "trigger": "Moraine wall breach triggered by continuous cloudburst rainfall & ice avalanche displacement wave",
+    "estimated_peak_discharge_m3s": 5200,
+    "volume_released_mcm": 30.5,
+    "damage": "Washed away 1,200 MW Chungthang Hydro Dam (Teesta-III), 40+ bridges destroyed, 100+ fatalities, severed NH-10 connectivity",
+    "key_lesson": "Need for automated water level sensor telemetry and early warning acoustic sirens downstream"
+  },
+  {
+    "year": 2021,
+    "event_name": "Chamoli / Rishiganga Disaster",
+    "location": "Chamoli, Uttarakhand, India",
+    "basin": "Rishiganga & Dhauliganga",
+    "trigger": "Catastrophic rock and hanging ice avalanche from Ronti Peak crashing into valley floor, mobilizing massive slurry flood",
+    "estimated_peak_discharge_m3s": 4600,
+    "volume_released_mcm": 27.0,
+    "damage": "Destroyed Rishiganga HEP, severely damaged Tapovan Vishnugad HEP tunnel, 204 casualties",
+    "key_lesson": "Steep hanging glacier walls in high-altitude permafrost zones require thermal satellite monitoring"
+  },
+  {
+    "year": 2013,
+    "event_name": "Kedarnath Chorabari Lake Breach",
+    "location": "Rudraprayag, Uttarakhand, India",
+    "basin": "Mandakini River",
+    "trigger": "Excessive monsoon precipitation coupled with rapid snowmelt filled Chorabari Lake beyond moraine crest capacity",
+    "estimated_peak_discharge_m3s": 3800,
+    "volume_released_mcm": 0.4,
+    "damage": "Over 5,000 fatalities, devastating destruction of Kedarnath township, Rambara, and downstream pilgrim routes",
+    "key_lesson": "Moraine morass dams have very low shear strength under sudden saturation and hydrostatic surge"
+  },
+  {
+    "year": 2016,
+    "event_name": "Bhotekoshi GLOF (Gongbatongshacuo)",
+    "location": "Tibet / Nepal border",
+    "basin": "Sun Koshi Basin",
+    "trigger": "Moraine dam failure in Tibet sending transboundary flood surge down into Nepal",
+    "estimated_peak_discharge_m3s": 2400,
+    "volume_released_mcm": 8.0,
+    "damage": "Damaged Upper Bhotekoshi Hydroelectric Plant, destroyed Friendship Bridge at Tatopani border crossing",
+    "key_lesson": "Cross-border transboundary early warning sharing protocol is indispensable in the Himalayas"
+  },
+  {
+    "year": 1994,
+    "event_name": "Luggye Tsho GLOF",
+    "location": "Lunana, Bhutan",
+    "basin": "Pho Chhu Basin",
+    "trigger": "Partial collapse of end-moraine dam from hydrostatic pressure",
+    "estimated_peak_discharge_m3s": 2570,
+    "volume_released_mcm": 17.2,
+    "damage": "Flooded downstream Punakha valley, 21 casualties, severely threatened ancient Punakha Dzong",
+    "key_lesson": "Manual and mechanical drainage channels must be carved to control lake freeboard"
+  }
+]

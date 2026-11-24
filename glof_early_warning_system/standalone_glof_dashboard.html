@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himalayan GLOF Early Warning & Risk Intelligence Dashboard (Standalone)</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --bg-card: #162033;
+            --border-color: #27354f;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --danger-red: #ef4444;
+            --warning-amber: #f59e0b;
+            --success-green: #10b981;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); line-height: 1.5; min-height: 100vh; }
+        
+        .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .logo-wrap { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #06b6d4, #3b82f6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .logo-title { font-size: 1.25rem; font-weight: 700; color: #fff; }
+        .logo-subtitle { font-size: 0.75rem; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 1px; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem 2rem 0.5rem 2rem; }
+        .kpi-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; }
+        .kpi-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .kpi-val { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .kpi-lbl { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+
+        .layout { display: grid; grid-template-columns: 1fr 420px; gap: 1.5rem; padding: 1.5rem 2rem; }
+        @media (max-width: 1200px) { .layout { grid-template-columns: 1fr; } }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); }
+        .card-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: #fff; }
+
+        #map { width: 100%; height: 420px; border-radius: 8px; z-index: 10; }
+
+        .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+        select, input[type="range"] { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; padding: 0.55rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+        .range-wrap { display: flex; align-items: center; gap: 0.75rem; }
+        .range-val { font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); min-width: 60px; }
+
+        .btn-primary { background: linear-gradient(135deg, #06b6d4, #2563eb); color: #fff; border: none; border-radius: 6px; padding: 0.75rem 1.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-primary:hover { opacity: 0.9; }
+
+        .sim-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
+        .sim-kpi-box { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; text-align: center; }
+        .sim-kpi-val { font-size: 1.25rem; font-weight: 700; color: #38bdf8; }
+        .sim-kpi-lbl { font-size: 0.7rem; color: var(--text-muted); }
+
+        .table-wrap { overflow-x: auto; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.825rem; text-align: left; }
+        th { background: var(--bg-secondary); color: var(--text-muted); font-weight: 600; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border-color); }
+        td { padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+        .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-orange { background: rgba(245, 158, 11, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); }
+        .badge-yellow { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.4); }
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+        .recs-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+        .recs-list li { font-size: 0.8rem; background: var(--bg-secondary); border-left: 3px solid var(--accent-cyan); padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo-wrap">
+            <div class="logo-icon">🏔️</div>
+            <div>
+                <div class="logo-title">GLOF-WATCH &bull; Standalone Edition</div>
+                <div class="logo-subtitle">Himalayan Glacial Lake Outburst Early Warning & Simulation</div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:1rem;">
+            <span class="badge badge-green">STANDALONE CLIENT ACTIVE</span>
+            <button class="btn-primary" onclick="window.print()" style="padding:0.4rem 0.8rem; font-size:0.8rem;">Export PDF / Print</button>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">🛰️</div>
+            <div>
+                <div class="kpi-val" id="kpi-monitored">10</div>
+                <div class="kpi-lbl">Monitored Sentinel Lakes</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
+            <div>
+                <div class="kpi-val" id="kpi-critical" style="color: #ef4444;">--</div>
+                <div class="kpi-lbl">Critical Hazard Tier</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💧</div>
+            <div>
+                <div class="kpi-val" id="kpi-volume">--</div>
+                <div class="kpi-lbl">Total Impounded Volume</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">👥</div>
+            <div>
+                <div class="kpi-val" id="kpi-exposed">--</div>
+                <div class="kpi-lbl">Downstream Population at Direct Risk</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout">
+        <!-- Main Area -->
+        <div>
+            <!-- Map -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span>🗺️</span> Himalayan Glacial Basins & Sentinel Lakes Map</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Satellite & Topo Relief Layers</div>
+                </div>
+                <div id="map"></div>
+                <div style="display:flex; gap:1.5rem; margin-top:0.75rem; font-size:0.75rem; color:var(--text-muted); align-items:center;">
+                    <span><strong>Hazard Tiers:</strong></span>
+                    <span><span style="color:#ef4444; font-size:1.1rem;">●</span> Critical</span>
+                    <span><span style="color:#f97316; font-size:1.1rem;">●</span> High</span>
+                    <span><span style="color:#eab308; font-size:1.1rem;">●</span> Moderate</span>
+                    <span><span style="color:#38bdf8; font-weight:bold;">- - -</span> Downstream Flood Vector</span>
+                </div>
+            </div>
+
+            <!-- Simulation -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span>⚡</span> Dynamic Outburst Flood Simulation Studio</div>
+                    <div style="font-size:0.75rem; color:var(--accent-cyan);">Costa & Froehlich Hydrodynamic Engine</div>
+                </div>
+
+                <div class="sim-grid">
+                    <div class="form-group">
+                        <label for="lake-selector">Glacial Lake Target</label>
+                        <select id="lake-selector"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trigger-type">Trigger Mechanism</label>
+                        <select id="trigger-type">
+                            <option value="avalanche">Ice / Rock Avalanche (Impulse Tsunami Wave)</option>
+                            <option value="breach">Moraine Dam Piping / Crest Collapse</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="avalanche-controls" class="sim-grid">
+                    <div class="form-group">
+                        <label>Avalanche Detachment Volume</label>
+                        <div class="range-wrap">
+                            <input type="range" id="aval-vol-slider" min="500000" max="4000000" step="100000" value="2000000">
+                            <span class="range-val" id="aval-vol-val">2.00 MCM</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="justify-content:flex-end;">
+                        <button class="btn-primary" id="btn-run-sim" style="width:100%;">▶ Run Hydrodynamic Simulation</button>
+                    </div>
+                </div>
+
+                <div id="breach-controls" class="sim-grid" style="display:none;">
+                    <div class="form-group">
+                        <label>Moraine Breach Depth (% of Dam Height)</label>
+                        <div class="range-wrap">
+                            <input type="range" id="breach-depth-slider" min="20" max="90" step="5" value="60">
+                            <span class="range-val" id="breach-depth-val">60%</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="justify-content:flex-end;">
+                        <button class="btn-primary" onclick="runSimulation()" style="width:100%;">▶ Run Breach Simulation</button>
+                    </div>
+                </div>
+
+                <!-- Simulation Output KPIs -->
+                <div class="sim-kpi-row">
+                    <div class="sim-kpi-box">
+                        <div class="sim-kpi-val" id="res-wave">--</div>
+                        <div class="sim-kpi-lbl">Impulse Wave Height</div>
+                    </div>
+                    <div class="sim-kpi-box">
+                        <div class="sim-kpi-val" id="res-overtop">--</div>
+                        <div class="sim-kpi-lbl">Crest Overtopping</div>
+                    </div>
+                    <div class="sim-kpi-box">
+                        <div class="sim-kpi-val" id="res-vol">--</div>
+                        <div class="sim-kpi-lbl">Outburst Volume Drained</div>
+                    </div>
+                    <div class="sim-kpi-box">
+                        <div class="sim-kpi-val" id="res-peak" style="color:#ef4444;">--</div>
+                        <div class="sim-kpi-lbl">Peak Discharge (Qmax)</div>
+                    </div>
+                </div>
+
+                <!-- Hydrograph -->
+                <div style="height:250px; margin-top:1rem;">
+                    <canvas id="hydrographChart"></canvas>
+                </div>
+
+                <!-- Downstream Table -->
+                <div class="table-wrap">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:0.4rem;">
+                        Downstream Impact, Travel Velocity & Evacuation Lead-Times
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Downstream Settlement / Asset</th>
+                                <th>Distance</th>
+                                <th>Wave Arrival</th>
+                                <th>Peak Q</th>
+                                <th>Flow Depth</th>
+                                <th>Warning Alert</th>
+                            </tr>
+                        </thead>
+                        <tbody id="downstream-body"></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Side: Deep Dive -->
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span>🎯</span> Hazard Intelligence</div>
+                    <span id="dd-badge" class="badge badge-red">CRITICAL</span>
+                </div>
+
+                <div style="display:flex; flex-direction:column; align-items:center; padding:1rem 0;">
+                    <div id="dd-score" style="font-size:2.75rem; font-weight:800; color:#ef4444; line-height:1;">--</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">Composite GLOF Vulnerability (0 - 100)</div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin:1rem 0; font-size:0.75rem;">
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Elevation:</span> <strong id="dd-elev">--</strong></div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Area:</span> <strong id="dd-area">--</strong></div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Volume:</span> <strong id="dd-vol">--</strong></div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Freeboard:</span> <strong id="dd-freeboard">--</strong></div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Slope:</span> <strong id="dd-slope">--</strong></div>
+                    <div style="background:var(--bg-secondary); padding:0.4rem 0.6rem; border-radius:4px;"><span style="color:var(--text-muted);">Dam:</span> <strong id="dd-dam">--</strong></div>
+                </div>
+
+                <div style="height:230px; margin:1rem 0;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+
+                <div style="margin-top:1.25rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff;">Satellite Lake Growth Time-Series</div>
+                    <div style="height:170px;">
+                        <canvas id="timeseriesChart"></canvas>
+                    </div>
+                    <div id="ts-note" style="font-size:0.7rem; color:var(--accent-cyan); margin-top:0.25rem;"></div>
+                </div>
+
+                <div style="margin-top:1.25rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:#fff;">Early Warning & Engineering Directives</div>
+                    <ul class="recs-list" id="dd-recs"></ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Embedded Glacial Lake Dataset
+        const LAKES_DATA = [
+            {
+                "id": "GL-IND-SKM-001", "name": "South Lhonak Lake", "region": "North Sikkim", "country": "India", "basin": "Teesta River Basin",
+                "lat": 27.9152, "lon": 88.2045, "elevation_m": 5200, "lake_area_km2": 1.68, "lake_volume_mcm": 65.8, "max_depth_m": 125,
+                "dam_type": "Moraine-dammed", "dam_height_m": 85, "dam_width_m": 220, "freeboard_m": 15, "expansion_rate_pct_yr": 7.4,
+                "slope_gradient_deg": 38.5, "mother_glacier_distance_m": 120, "permafrost_degradation_index": 0.82,
+                "downstream_elements": [
+                    {"name": "Chungthang Dam & Town", "distance_km": 68, "population": 4500, "critical_asset": "1200MW Teesta III HEP"},
+                    {"name": "Dikchu", "distance_km": 105, "population": 3200, "critical_asset": "96MW Dikchu HEP"},
+                    {"name": "Singtam", "distance_km": 128, "population": 6500, "critical_asset": "Highway Bridge NH-10"},
+                    {"name": "Rangpo", "distance_km": 142, "population": 10500, "critical_asset": "Border Transit & Industrial Estate"}
+                ]
+            },
+            {
+                "id": "GL-IND-UTK-002", "name": "Chorabari Lake (Gandhi Sarovar)", "region": "Kedarnath, Uttarakhand", "country": "India", "basin": "Mandakini River Basin",
+                "lat": 30.7495, "lon": 79.0628, "elevation_m": 3960, "lake_area_km2": 0.28, "lake_volume_mcm": 0.85, "max_depth_m": 22,
+                "dam_type": "Lateral Moraine", "dam_height_m": 35, "dam_width_m": 90, "freeboard_m": 6, "expansion_rate_pct_yr": 3.1,
+                "slope_gradient_deg": 42.0, "mother_glacier_distance_m": 50, "permafrost_degradation_index": 0.65,
+                "downstream_elements": [
+                    {"name": "Kedarnath Temple Complex", "distance_km": 2.5, "population": 5000, "critical_asset": "Heritage Shrine"},
+                    {"name": "Rambara", "distance_km": 9.0, "population": 800, "critical_asset": "Pedestrian Bridge & Camps"},
+                    {"name": "Gaurikund", "distance_km": 16.0, "population": 2500, "critical_asset": "Roadhead Terminal"},
+                    {"name": "Sonprayag", "distance_km": 21.0, "population": 3000, "critical_asset": "River Confluence Settlement"}
+                ]
+            },
+            {
+                "id": "GL-NPL-EVE-003", "name": "Imja Tsho", "region": "Khumbu, Everest", "country": "Nepal", "basin": "Dudh Koshi Basin",
+                "lat": 27.9022, "lon": 86.9281, "elevation_m": 5010, "lake_area_km2": 1.35, "lake_volume_mcm": 78.0, "max_depth_m": 149,
+                "dam_type": "End-Moraine with Ice Core", "dam_height_m": 70, "dam_width_m": 350, "freeboard_m": 42, "expansion_rate_pct_yr": 4.8,
+                "slope_gradient_deg": 32.0, "mother_glacier_distance_m": 80, "permafrost_degradation_index": 0.76,
+                "downstream_elements": [
+                    {"name": "Dingboche", "distance_km": 10.5, "population": 600, "critical_asset": "Sherpa Settlement"},
+                    {"name": "Pangboche", "distance_km": 18.0, "population": 900, "critical_asset": "Ancient Monastery"},
+                    {"name": "Namche Bazaar", "distance_km": 34.0, "population": 2000, "critical_asset": "Trade Hub"},
+                    {"name": "Lukla Valley / Airport", "distance_km": 52.0, "population": 1800, "critical_asset": "Airport Gateway"}
+                ]
+            },
+            {
+                "id": "GL-NPL-DOL-004", "name": "Tsho Rolpa", "region": "Rolwaling Valley, Dolakha", "country": "Nepal", "basin": "Tama Koshi Basin",
+                "lat": 27.8540, "lon": 86.4782, "elevation_m": 4580, "lake_area_km2": 1.54, "lake_volume_mcm": 85.9, "max_depth_m": 132,
+                "dam_type": "Moraine-dammed", "dam_height_m": 150, "dam_width_m": 400, "freeboard_m": 18, "expansion_rate_pct_yr": 3.8,
+                "slope_gradient_deg": 35.0, "mother_glacier_distance_m": 200, "permafrost_degradation_index": 0.74,
+                "downstream_elements": [
+                    {"name": "Na Village", "distance_km": 6.5, "population": 350, "critical_asset": "Alpine Pastoral Settlement"},
+                    {"name": "Beding", "distance_km": 15.0, "population": 750, "critical_asset": "Monastery Settlement"},
+                    {"name": "Upper Tama Koshi HEP", "distance_km": 60.0, "population": 3500, "critical_asset": "456MW Hydro Plant"}
+                ]
+            },
+            {
+                "id": "GL-BTN-LUN-006", "name": "Thorthormi Tsho", "region": "Lunana, Gasa District", "country": "Bhutan", "basin": "Pho Chhu Basin",
+                "lat": 28.1150, "lon": 90.2400, "elevation_m": 4428, "lake_area_km2": 3.42, "lake_volume_mcm": 115.0, "max_depth_m": 88,
+                "dam_type": "Unstable Moraine Ridge", "dam_height_m": 55, "dam_width_m": 310, "freeboard_m": 9, "expansion_rate_pct_yr": 8.1,
+                "slope_gradient_deg": 28.0, "mother_glacier_distance_m": 50, "permafrost_degradation_index": 0.88,
+                "downstream_elements": [
+                    {"name": "Thanza Village", "distance_km": 12.0, "population": 400, "critical_asset": "Yak Herders Settlement"},
+                    {"name": "Punakha Dzong", "distance_km": 92.0, "population": 7500, "critical_asset": "17th Century Fortress"},
+                    {"name": "Wangdue Phodrang", "distance_km": 110.0, "population": 9000, "critical_asset": "District Center"},
+                    {"name": "Punatsangchhu-I HEP", "distance_km": 135.0, "population": 5000, "critical_asset": "1200MW Hydro Project"}
+                ]
+            }
+        ];
+
+        const TIME_SERIES_DATA = {
+            "GL-IND-SKM-001": {
+                "years": [2000, 2005, 2010, 2015, 2018, 2020, 2022, 2023],
+                "areas": [0.42, 0.65, 0.98, 1.26, 1.45, 1.58, 1.68, 0.58],
+                "temps": [1.2, 1.5, 2.1, 2.8, 3.2, 3.6, 4.1, 4.3],
+                "note": "Dramatic drainage observed post-October 2023 outburst"
+            },
+            "GL-NPL-EVE-003": {
+                "years": [2000, 2004, 2008, 2012, 2016, 2019, 2021, 2024],
+                "areas": [0.82, 0.94, 1.05, 1.18, 1.28, 1.31, 1.33, 1.35],
+                "temps": [2.0, 2.3, 2.6, 3.0, 3.1, 3.5, 3.8, 4.0],
+                "note": "Controlled drainage canal excavated in 2016"
+            }
+        };
+
+        // Scientific Risk Assessment Function
+        function evaluateRisk(lake) {
+            const vol = lake.lake_volume_mcm;
+            const exp = lake.expansion_rate_pct_yr;
+            const freeboard = lake.freeboard_m;
+            const slope = lake.slope_gradient_deg;
+            const thaw = lake.permafrost_degradation_index * 100;
+            const ratio = lake.dam_width_m / Math.max(1, lake.dam_height_m);
+            const dist = lake.mother_glacier_distance_m;
+
+            const volScore = Math.min(100, (vol / 60) * 100);
+            const expScore = Math.min(100, (exp / 8) * 100);
+            const fbScore = freeboard <= 5 ? 95 : (freeboard <= 12 ? 75 : (freeboard <= 25 ? 45 : 20));
+            const slopeScore = slope >= 40 ? 95 : (slope >= 30 ? 75 : 45);
+            const damScore = ratio < 2.5 ? 90 : (ratio < 4.0 ? 65 : 35);
+            const proxScore = dist < 60 ? 95 : (dist < 150 ? 75 : 40);
+
+            const composite = (volScore * 0.18 + expScore * 0.16 + fbScore * 0.15 + slopeScore * 0.14 + thaw * 0.13 + damScore * 0.12 + proxScore * 0.12);
+
+            let level = "LOW", color = "#22c55e";
+            if (composite >= 75) { level = "CRITICAL"; color = "#ef4444"; }
+            else if (composite >= 55) { level = "HIGH"; color = "#f97316"; }
+            else if (composite >= 35) { level = "MODERATE"; color = "#eab308"; }
+
+            const recs = [];
+            if (composite >= 70) {
+                recs.push("Deploy automated LoRa telemetry water level sensors with satellite uplink.");
+                recs.push("Install downstream acoustic early warning alarm sirens in threatened villages.");
+            }
+            if (freeboard < 15) {
+                recs.push("Perform controlled siphon drainage or spillway cutting to expand freeboard >= 5m.");
+            }
+            if (slope > 35) {
+                recs.push("Schedule SAR satellite interferometry (InSAR) on hanging glacier ice cliffs.");
+            }
+
+            return {
+                score: Math.round(composite * 10) / 10,
+                level, color, recs,
+                factors: {
+                    "Volume Susceptibility": Math.round(volScore),
+                    "Expansion Dynamics": Math.round(expScore),
+                    "Freeboard Deficiency": Math.round(fbScore),
+                    "Slope Hazard": Math.round(slopeScore),
+                    "Permafrost Thaw": Math.round(thaw),
+                    "Dam Fragility": Math.round(damScore),
+                    "Glacier Proximity": Math.round(proxScore)
+                }
+            };
+        }
+
+        let map, radarChart, hydroChart, tsChart, currentLake, downstreamLayer;
+
+        function init() {
+            // Map
+            map = L.map("map").setView([28.5, 84.5], 6);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri World Imagery'
+            }).addTo(map);
+
+            downstreamLayer = L.layerGroup().addTo(map);
+
+            // Populate selector & markers
+            const sel = document.getElementById("lake-selector");
+            let criticalCount = 0, totalVol = 0, totalPop = 0;
+
+            LAKES_DATA.forEach(lake => {
+                lake.risk = evaluateRisk(lake);
+                totalVol += lake.lake_volume_mcm;
+                if (lake.risk.level === "CRITICAL") criticalCount++;
+                lake.downstream_elements.forEach(e => totalPop += e.population);
+
+                const opt = document.createElement("option");
+                opt.value = lake.id;
+                opt.innerText = `${lake.name} (${lake.region}) - ${lake.risk.level}`;
+                sel.appendChild(opt);
+
+                const marker = L.circleMarker([lake.lat, lake.lon], {
+                    radius: 8,
+                    fillColor: lake.risk.color,
+                    color: "#fff",
+                    weight: 2,
+                    fillOpacity: 0.9
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div style="font-family:sans-serif;">
+                        <h4 style="margin:0 0 4px 0;">${lake.name}</h4>
+                        <div style="font-size:12px;"><strong>Hazard:</strong> <span style="color:${lake.risk.color}; font-weight:bold;">${lake.risk.level} (${lake.risk.score}/100)</span></div>
+                        <div style="font-size:12px;">Volume: ${lake.lake_volume_mcm} MCM</div>
+                        <button onclick="selectLake('${lake.id}')" style="background:#0284c7; color:#fff; border:none; padding:4px 8px; border-radius:4px; margin-top:6px; cursor:pointer; width:100%;">Select Lake</button>
+                    </div>
+                `);
+            });
+
+            document.getElementById("kpi-monitored").innerText = LAKES_DATA.length;
+            document.getElementById("kpi-critical").innerText = criticalCount;
+            document.getElementById("kpi-volume").innerText = `${totalVol.toFixed(1)} MCM`;
+            document.getElementById("kpi-exposed").innerText = totalPop.toLocaleString();
+
+            // Event Listeners
+            sel.addEventListener("change", (e) => selectLake(e.target.value));
+            document.getElementById("trigger-type").addEventListener("change", (e) => {
+                const isAval = e.target.value === "avalanche";
+                document.getElementById("avalanche-controls").style.display = isAval ? "grid" : "none";
+                document.getElementById("breach-controls").style.display = isAval ? "none" : "grid";
+            });
+            document.getElementById("aval-vol-slider").addEventListener("input", (e) => {
+                document.getElementById("aval-vol-val").innerText = `${(e.target.value / 1e6).toFixed(2)} MCM`;
+            });
+            document.getElementById("breach-depth-slider").addEventListener("input", (e) => {
+                document.getElementById("breach-depth-val").innerText = `${e.target.value}%`;
+            });
+            document.getElementById("btn-run-sim").addEventListener("click", runSimulation);
+
+            selectLake(LAKES_DATA[0].id);
+        }
+
+        function selectLake(id) {
+            currentLake = LAKES_DATA.find(l => l.id === id);
+            if (!currentLake) return;
+
+            document.getElementById("lake-selector").value = id;
+            map.setView([currentLake.lat, currentLake.lon], 9);
+
+            // Draw downstream vector
+            downstreamLayer.clearLayers();
+            const coords = [[currentLake.lat, currentLake.lon]];
+            currentLake.downstream_elements.forEach((e, idx) => {
+                const pt = [currentLake.lat - (idx+1)*0.08, currentLake.lon + (idx+1)*0.04];
+                coords.push(pt);
+                L.circleMarker(pt, { radius: 5, fillColor: "#fb923c", color: "#fff", weight: 1.5, fillOpacity: 0.9 })
+                 .bindPopup(`<strong>${e.name}</strong> (${e.distance_km} km)<br>Pop: ${e.population}`)
+                 .addTo(downstreamLayer);
+            });
+            L.polyline(coords, { color: "#38bdf8", weight: 3, dashArray: "6,8" }).addTo(downstreamLayer);
+
+            // Update UI
+            document.getElementById("dd-score").innerText = currentLake.risk.score;
+            document.getElementById("dd-score").style.color = currentLake.risk.color;
+            document.getElementById("dd-badge").innerText = currentLake.risk.level;
+            document.getElementById("dd-badge").className = `badge badge-${currentLake.risk.level === 'CRITICAL' ? 'red' : 'orange'}`;
+
+            document.getElementById("dd-elev").innerText = `${currentLake.elevation_m} m`;
+            document.getElementById("dd-area").innerText = `${currentLake.lake_area_km2} km²`;
+            document.getElementById("dd-vol").innerText = `${currentLake.lake_volume_mcm} MCM`;
+            document.getElementById("dd-freeboard").innerText = `${currentLake.freeboard_m} m`;
+            document.getElementById("dd-slope").innerText = `${currentLake.slope_gradient_deg}°`;
+            document.getElementById("dd-dam").innerText = currentLake.dam_type;
+
+            const recsUl = document.getElementById("dd-recs");
+            recsUl.innerHTML = "";
+            currentLake.risk.recs.forEach(r => {
+                const li = document.createElement("li");
+                li.innerText = r;
+                recsUl.appendChild(li);
+            });
+
+            renderRadar(currentLake.risk.factors);
+            renderTimeSeries(id);
+            runSimulation();
+        }
+
+        function renderRadar(factors) {
+            if (radarChart) radarChart.destroy();
+            radarChart = new Chart(document.getElementById("radarChart"), {
+                type: "radar",
+                data: {
+                    labels: Object.keys(factors),
+                    datasets: [{
+                        label: "Risk Index",
+                        data: Object.values(factors),
+                        backgroundColor: "rgba(6, 182, 212, 0.25)",
+                        borderColor: "#06b6d4",
+                        pointBackgroundColor: "#38bdf8"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: "rgba(255,255,255,0.1)" },
+                            grid: { color: "rgba(255,255,255,0.1)" },
+                            pointLabels: { color: "#9ca3af", font: { size: 9 } },
+                            ticks: { display: false, max: 100, min: 0 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderTimeSeries(id) {
+            if (tsChart) tsChart.destroy();
+            const ts = TIME_SERIES_DATA[id];
+            if (!ts) {
+                document.getElementById("ts-note").innerText = "No multi-year Landsat record available for this lake.";
+                return;
+            }
+            document.getElementById("ts-note").innerText = ts.note;
+
+            tsChart = new Chart(document.getElementById("timeseriesChart"), {
+                type: "line",
+                data: {
+                    labels: ts.years,
+                    datasets: [
+                        { label: "Area (km²)", data: ts.areas, borderColor: "#38bdf8", backgroundColor: "rgba(56, 189, 248, 0.15)", fill: true, tension: 0.3, yAxisID: 'y' },
+                        { label: "Summer Temp (°C)", data: ts.temps, borderColor: "#f97316", borderDash: [5,5], fill: false, tension: 0.3, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: "#9ca3af" }, grid: { color: "rgba(255,255,255,0.05)" } },
+                        y: { type: 'linear', position: 'left', ticks: { color: "#38bdf8" }, grid: { color: "rgba(255,255,255,0.05)" } },
+                        y1: { type: 'linear', position: 'right', ticks: { color: "#f97316" }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function runSimulation() {
+            if (!currentLake) return;
+            const trigger = document.getElementById("trigger-type").value;
+            const lakeVolM3 = currentLake.lake_volume_mcm * 1e6;
+            const freeboard = currentLake.freeboard_m;
+            const damHeight = currentLake.dam_height_m;
+
+            let waveH = 0, overtopH = 0, drainedM3 = 0, breachDepth = 0;
+
+            if (trigger === "avalanche") {
+                const avalVol = parseFloat(document.getElementById("aval-vol-slider").value);
+                const ratio = avalVol / Math.max(100, Math.pow(currentLake.max_depth_m, 3));
+                waveH = Math.min(60, Math.max(2, 0.35 * currentLake.max_depth_m * Math.pow(ratio, 0.32) * Math.sin(45 * Math.PI / 180)));
+                const crestWave = waveH * 0.52;
+                overtopH = Math.max(0, crestWave - freeboard);
+
+                if (overtopH > 0) {
+                    breachDepth = Math.min(damHeight * 0.85, freeboard + overtopH * 1.5);
+                    const pct = Math.min(75, Math.max(15, (breachDepth / damHeight) * 60));
+                    drainedM3 = lakeVolM3 * (pct / 100);
+                }
+                document.getElementById("res-wave").innerText = `${waveH.toFixed(1)} m`;
+                document.getElementById("res-overtop").innerText = `${overtopH.toFixed(1)} m`;
+            } else {
+                const fraction = parseFloat(document.getElementById("breach-depth-slider").value) / 100;
+                breachDepth = damHeight * fraction;
+                drainedM3 = lakeVolM3 * Math.min(0.85, fraction * 0.7);
+                document.getElementById("res-wave").innerText = "N/A";
+                document.getElementById("res-overtop").innerText = `${breachDepth.toFixed(1)} m`;
+            }
+
+            // Costa & Froehlich peak discharge
+            let peakQ = 0;
+            if (drainedM3 > 0) {
+                const costaQ = 0.013 * Math.pow(drainedM3, 0.598) * Math.pow(breachDepth, 0.548);
+                const froehQ = 0.607 * Math.pow(drainedM3, 0.295) * Math.pow(breachDepth, 1.24);
+                peakQ = (costaQ * 0.5 + froehQ * 0.5);
+            }
+
+            const drainedMCM = drainedM3 / 1e6;
+            document.getElementById("res-vol").innerText = `${drainedMCM.toFixed(1)} MCM`;
+            document.getElementById("res-peak").innerText = `${Math.round(peakQ).toLocaleString()} m³/s`;
+
+            // Render hydrograph
+            renderHydrograph(peakQ, drainedM3);
+
+            // Downstream propagation
+            renderDownstreamTable(peakQ);
+        }
+
+        function renderHydrograph(peakQ, volM3) {
+            if (hydroChart) hydroChart.destroy();
+            const tBase = Math.min(360, Math.max(45, (2 * volM3 / Math.max(1, peakQ)) / 60));
+            const tPeak = tBase * 0.3;
+            const labels = [], data = [];
+
+            for (let t = 0; t <= tBase; t += 5) {
+                labels.push(`${t}m`);
+                let q = 0;
+                if (peakQ > 0) {
+                    if (t <= tPeak) q = peakQ * Math.pow(t / tPeak, 1.5);
+                    else q = peakQ * Math.exp(-2.5 * ((t - tPeak) / (tBase - tPeak)));
+                }
+                data.push(Math.round(q));
+            }
+
+            hydroChart = new Chart(document.getElementById("hydrographChart"), {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Discharge Hydrograph Q (m³/s)",
+                        data,
+                        borderColor: "#06b6d4",
+                        backgroundColor: "rgba(6, 182, 212, 0.2)",
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: "#9ca3af", maxTicksLimit: 12 }, grid: { color: "rgba(255,255,255,0.05)" } },
+                        y: { ticks: { color: "#9ca3af" }, grid: { color: "rgba(255,255,255,0.05)" } }
+                    },
+                    plugins: { legend: { labels: { color: "#e5e7eb" } } }
+                }
+            });
+        }
+
+        function renderDownstreamTable(peakQ) {
+            const tbody = document.getElementById("downstream-body");
+            tbody.innerHTML = "";
+
+            currentLake.downstream_elements.forEach(elem => {
+                const distKm = elem.distance_km;
+                const atten = 1 / (1 + 0.025 * Math.pow(distKm, 0.72));
+                const localQ = peakQ * atten;
+                const depth = Math.max(1.2, Math.pow((localQ * 0.055) / (65 * Math.sqrt(0.04)), 0.6));
+                const vel = Math.min(11, Math.max(3.5, localQ / (65 * depth)));
+                const arrMin = Math.round((distKm * 1000 / vel) / 60);
+
+                let badge = "badge-green", status = "ADVISORY";
+                if (arrMin < 40) { badge = "badge-red"; status = "IMMINENT RED"; }
+                else if (arrMin < 100) { badge = "badge-orange"; status = "ORANGE ALERT"; }
+                else if (arrMin < 180) { badge = "badge-yellow"; status = "YELLOW ALERT"; }
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${elem.name}</strong><br><small style="color:#9ca3af;">${elem.critical_asset}</small></td>
+                    <td>${distKm} km</td>
+                    <td style="color:#38bdf8; font-weight:700;">${arrMin} min</td>
+                    <td>${Math.round(localQ).toLocaleString()} m³/s</td>
+                    <td>${depth.toFixed(2)} m</td>
+                    <td><span class="badge ${badge}">${status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
